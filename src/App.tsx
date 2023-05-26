@@ -6,20 +6,58 @@ import {
   CounterPromise,
   CounterRPC,
 } from "./Counter.js";
-import { getCounter, greet, increment } from "./_rpc.js";
+import { embedFor, getCounter, greet, increment, pdfData } from "./_rpc.js";
+import { PDFLoader } from "langchain/document_loaders/fs/pdf";
+import { Document, DocumentInput } from "langchain/document";
+import { CharacterTextSplitter } from "langchain/text_splitter";
+import { AskInput } from "./pages/input.js";
 
 type ServerFunction<T> = T extends (...args: infer A) => infer R
   ? (...args: A) => Promise<R>
   : never;
 
+const loader = new PDFLoader("src/sample/phauf.pdf");
+
+const pages = await loader.loadAndSplit();
+
+const splitter = new CharacterTextSplitter({
+  separator: ".\n",
+  chunkSize: 400,
+  // chunkOverlap: 3,
+});
+
+export type PDFData = Awaited<ReturnType<typeof pdfData>>;
+export type EmbedQuery = Awaited<ReturnType<typeof embedFor>>;
+
 function App({ name = "Anonymous" }) {
-  const delayedMessage = new Promise<string>((resolve) => {
+  const delayedMessage = new Promise<string>(async (resolve) => {
+    // if (!pages[0]?.pageContent) return;
+    // const output = await splitter.splitDocuments(pages);
+    // // console.log({ output });
+
+    // const dataSheet: { textos: string[]; embedding: number[] } = {
+    //   textos: [],
+    //   embedding: [],
+    // };
+    // for (const doc of output) {
+    //   dataSheet.textos.push(doc.pageContent);
+    //   dataSheet.embedding = Array(1536)
+    //     .fill(undefined)
+    //     .map(() => Math.random());
+    // }
+    // console.log({ dataSheet });
+
     setTimeout(() => resolve("Hello from server 💃💃!"), 2000);
   });
 
   return (
     <div style={{ border: "3px red dashed", margin: "1em", padding: "1em" }}>
       <h1>Hello {name}!!</h1>
+
+      <AskInput
+        embedFor={embedFor as unknown as ServerFunction<EmbedQuery>}
+        pdfData={pdfData as unknown as ServerFunction<PDFData>}
+      />
       <h3>This is a server component.</h3>
       <Counter />
 
